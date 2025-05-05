@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 
 using ExternalLocalizer.Hjson;
 
@@ -6,11 +7,7 @@ namespace TmlHjsonLinter;
 
 public partial class Program
 {
-    [GeneratedRegex(@"^(.+) At line (\d+), column (\d)+$", RegexOptions.Compiled)]
-    private static partial Regex ErrorRegex();
-
-    static string? _rootPath;
-    static void Main(string[] args)
+    static int Main(string[] args)
     {
 
         var path = Directory.GetCurrentDirectory();
@@ -21,42 +18,69 @@ public partial class Program
         else if (args.Length > 1)
         {
             Console.Error.WriteLine("Too many arguments");
-            return;
+            return -1;
         }
 
         if (!Path.Exists(path))
         {
             Console.Error.WriteLine("Path does not exist");
-            return;
+            return -1;
         }
+
+
+        List<string> files;
 
         if (Directory.Exists(path))
         {
             _rootPath = path;
-            foreach (string file in Directory.EnumerateFiles(path, "*.hjson", SearchOption.AllDirectories))
-                Lint(file);
+            files = Directory.EnumerateFiles(path, "*.hjson", SearchOption.AllDirectories).ToList();
         }
         else
         {
             if (Path.GetExtension(path) != ".hjson")
             {
                 Console.Error.WriteLine("File is not a .hjson file");
-                return;
+                return -1;
             }
+
             _rootPath = Path.GetDirectoryName(path);
-            Lint(path);
+            files = [path];
+        }
+
+
+        var success = 0;
+        var failure = 0;
+        var failureFiles = new List<string>();
+
+        foreach (var file in files)
+        {
+            //Console.WriteLine($"Linting file: {GetRelativePath(file)}");
+            if (Lint(file, out var values))
+            {
+                success++;
+
+            }
+            else
+            {
+                failure++;
+                failureFiles.Add(file);
+            }
+            Console.WriteLine("");
         }
 
         Console.WriteLine("Linting complete");
+        return failure;
     }
 
-    static void Lint(string file)
+    [GeneratedRegex(@"^(.+) At line (\d+), column (\d)+$", RegexOptions.Compiled)]
+    private static partial Regex ErrorRegex();
+
+    static bool Lint(string file, [NotNullWhen(true)] out List<(string, string)>? values)
     {
         var content = File.ReadAllText(file);
-        List<(string, string)> jsonValue;
         try
         {
-            jsonValue = HjsonCustom.Parse(content, "");
+            values = HjsonCustom.Parse(content, "");
 
         }
         catch (ArgumentException e)
@@ -74,26 +98,33 @@ public partial class Program
             {
                 Annotate(e.Message, file);
             }
-            return;
+            values = null;
+            return false;
         }
 
-        if (jsonValue.Count == 0)
+        if (values.Count == 0)
         {
             Annotate("No keys found in Hjson file", file);
-            return;
+            values = null;
+            return false;
         }
 
-        Console.WriteLine($"Successfully parsed Hjson file: {file}, {jsonValue.Count} keys found");
+        return true;
     }
 
     static void Annotate(string message, string file, int line = 0, int column = 0)
     {
+        Console.Error.WriteLine($"::error file={GetRelativePath(file)},line={line},col={column}::{message}");
+    }
+
+    static string? _rootPath;
+
+    static string GetRelativePath(string path)
+    {
         if (_rootPath != null)
         {
-            file = Path.GetRelativePath(_rootPath, file);
+            path = Path.GetRelativePath(_rootPath, path);
         }
-        file = file.Replace("\\", "/");
-
-        Console.Error.WriteLine($"::error file={file},line={line},col={column}::{message}");
+        return path.Replace("\\", "/");
     }
 }
