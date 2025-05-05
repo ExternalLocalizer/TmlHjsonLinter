@@ -57,6 +57,7 @@ public partial class Program
         var failure = 0;
         var failureFiles = new List<string>();
 
+        Console.WriteLine("Checking files:");
         foreach (var file in files)
         {
             //Console.WriteLine($"Linting file: {GetRelativePath(file)}");
