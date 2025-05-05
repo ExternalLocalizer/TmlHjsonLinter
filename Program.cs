@@ -10,6 +10,8 @@ public partial class Program
     static int Main(string[] args)
     {
 
+        Console.WriteLine("TML Hjson Linter");
+
         var path = Directory.GetCurrentDirectory();
         if (args.Length == 1)
         {
@@ -46,6 +48,9 @@ public partial class Program
             _rootPath = Path.GetDirectoryName(path);
             files = [path];
         }
+
+        Console.WriteLine($"Found hjson files: {files.Count}");
+        Console.WriteLine("");
 
 
         var success = 0;
