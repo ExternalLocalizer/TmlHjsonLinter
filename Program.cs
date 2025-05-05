@@ -17,13 +17,13 @@ public partial class Program
         }
         else if (args.Length > 1)
         {
-            Console.Error.WriteLine("Too many arguments");
+            Console.Error.WriteLine($"Too many arguments: {args.Length} > 1");
             return -1;
         }
 
         if (!Path.Exists(path))
         {
-            Console.Error.WriteLine("Path does not exist");
+            Console.Error.WriteLine($"Path does not exist: {path}");
             return -1;
         }
 
@@ -39,7 +39,7 @@ public partial class Program
         {
             if (Path.GetExtension(path) != ".hjson")
             {
-                Console.Error.WriteLine("File is not a .hjson file");
+                Console.Error.WriteLine($"File is not a .hjson file: {path}");
                 return -1;
             }
 
@@ -57,18 +57,27 @@ public partial class Program
             //Console.WriteLine($"Linting file: {GetRelativePath(file)}");
             if (Lint(file, out var values))
             {
+                Console.WriteLine($"\t\x1b[32mOK\x1b[0m: {GetRelativePath(file)} with {values.Count} keys");
                 success++;
 
             }
             else
             {
+                Console.WriteLine($"\t\x1b[31mFAIL\x1b[0m: {GetRelativePath(file)}");
                 failure++;
                 failureFiles.Add(file);
             }
             Console.WriteLine("");
         }
 
-        Console.WriteLine("Linting complete");
+        Console.WriteLine("Summary:");
+        Console.WriteLine($"\t\x1b[32mSuccess\x1b[0m: {success}");
+        Console.WriteLine($"\t\x1b[31mFailure\x1b[0m: {failure}");
+        Console.WriteLine("");
+        Console.WriteLine("\x1b[31mFailure files:\x1b[0m");
+        foreach (var file in failureFiles)
+            Console.WriteLine($"\t{GetRelativePath(file)}");
+
         return failure;
     }
 
