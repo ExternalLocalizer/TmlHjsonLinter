@@ -1,0 +1,13 @@
+name: Hjson Linter for tModLoader
+description: "Check Hjson files for errors"
+
+inputs:
+  path:
+    description: "Path to the directory containing the Hjson files"
+    default: "."
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.path }}
